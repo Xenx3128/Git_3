@@ -3,30 +3,37 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
-from UI import Ui_MainWindow as Ui
 import random
+import sqlite3
 
 
-class Example(QMainWindow, Ui):
+class Example(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
-        self.pushButton.clicked.connect(self.run)
-        self.do_paint = False
+        uic.loadUi('main.ui', self)
+        self.update()
 
-    def run(self):
-        self.do_paint = True
-        self.repaint()
-
-    def paintEvent(self, event):
-        if self.do_paint:
-            painter = QPainter()
-            painter.begin(self)
-            painter.setBrush(QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-            radius = random.randint(10, 150)
-            x, y = random.randint(radius, 800 - radius), random.randint(50 + radius, 600 - radius)
-            painter.drawEllipse(QPoint(x, y), radius, radius)
-            painter.end()
+    def update(self):
+        db = sqlite3.connect('coffee.sqlite')
+        cur = db.cursor()
+        items = cur.execute("""SELECT id, sort, roasting, is_ground,
+          description, price, volume
+          FROM Coffee""").fetchall()
+        db.close()
+        self.tableWidget.clearContents()
+        self.tableWidget.setColumnCount(len(items[0]))
+        self.tableWidget.setRowCount(len(items))
+        for i, row in enumerate(items):
+            for j, obj in enumerate(row):
+                cell = obj
+                if j == 3:
+                    if obj == 0:
+                        cell = 'В зёрнах'
+                    else:
+                        cell = 'Молотый'
+                self.tableWidget.setItem(i, j, QTableWidgetItem(str(cell)))
+        self.tableWidget.setColumnHidden(0, True)
+        self.tableWidget.resizeColumnsToContents()
 
 
 if __name__ == '__main__':
